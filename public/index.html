@@ -41,7 +41,6 @@
         shadow="type: pcfsoft; autoUpdate: true"
         renderer="antialias: true; shadowMap.enabled: true; shadowMap.type: PCFSoftShadowMap; shadowMap.autoUpdate: true; gammaOutput: true"
         xr-mode-ui="enabled: true"
-        mindar-image="imageTargetSrc: ./targets/SampleCar.mind" 
         color-space="sRGB" 
         renderer="colorManagement: true, physicallyCorrectLights" 
         vr-mode-ui="enabled: false" 
@@ -57,20 +56,39 @@
         <a-entity light="type: directional; intensity: 0.3; color: #FFF8DC; castShadow: false" position="-8 7 -8"></a-entity>
 
         <a-assets>
-          <img id="card" src="./targets/SampleCar.png" />
+          <!-- This will be updated dynamically -->
+          <img id="card" src="" crossorigin="anonymous" />
         </a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false" arjs-look-controls="smoothingFactor: 0.1"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
           <a-gltf-model 
             id="uploadedModel"
             rotation="90 0 0" 
-            position="0 .2 0" 
+            position="0 0.2 0" 
             scale="0.1 0.1 0.1" 
-            src="#avatarModel" 
+            visible="false"
             shadow="cast: true; receive: false">
           </a-gltf-model>
+          
+          <!-- Fallback plane if no 3D model -->
+          <a-plane 
+            id="fallbackPlane"
+            position="0 0 0" 
+            rotation="-90 0 0" 
+            width="1" 
+            height="1" 
+            color="#4CC3D9" 
+            opacity="0.7"
+            visible="false">
+            <a-text 
+              value="AR Target Found!" 
+
+              color="#FFF" 
+              position="0 0 0.01">
+            </a-text>
+          </a-plane>
         </a-entity>
       </a-scene>
     </div>

@@ -35,25 +35,70 @@ function showARScreen() {
 // Initialize AR scene with client-side files
 function initializeARScene() {
   if (mindBlobUrl && imageBlobUrl) {
-    const scene = document.querySelector('a-scene');
-    const cardImg = document.getElementById('card');
+    console.log('Initializing AR scene with uploaded files');
     
-    if (scene && cardImg) {
-      // Update MindAR target with blob URL
-      scene.setAttribute('mindar-image', `imageTargetSrc: ${mindBlobUrl};`);
-      cardImg.src = imageBlobUrl;
-      
-      // Update 3D model if available
-      if (modelBlobUrl) {
-        const modelEl = document.getElementById('uploadedModel');
-        if (modelEl) {
-          modelEl.setAttribute('gltf-model', modelBlobUrl);
-          modelEl.setAttribute('visible', 'true');
-        }
-      }
-      
-      console.log('AR Scene initialized with client-side files');
+    // Get the scene element
+    const scene = document.querySelector('a-scene');
+    if (!scene) {
+      console.error('A-Frame scene not found');
+      return;
     }
+
+    // Stop the current AR system if running
+    if (scene.systems && scene.systems['mindar-image-system']) {
+      scene.systems['mindar-image-system'].stop();
+    }
+
+    // Update the card image source first
+    const cardImg = document.getElementById('card');
+    if (cardImg) {
+      cardImg.src = imageBlobUrl;
+      console.log('Updated card image source');
+    }
+
+    // Wait for image to load, then reinitialize MindAR
+    const img = new Image();
+    img.onload = function() {
+      console.log('Image loaded, reinitializing MindAR');
+      
+      // Remove and recreate the mindar-image attribute to force reinitialization
+      scene.removeAttribute('mindar-image');
+      
+      // Wait a frame then add the new configuration
+      setTimeout(() => {
+        scene.setAttribute('mindar-image', {
+          imageTargetSrc: mindBlobUrl,
+          maxTrack: 1,
+          showStats: false,
+          autoStart: true,
+          uiLoading: 'no',
+          uiScanning: 'no',
+          uiError: 'no'
+        });
+        
+        // Update 3D model if available
+        if (modelBlobUrl) {
+          const modelEl = document.getElementById('uploadedModel');
+          if (modelEl) {
+            modelEl.setAttribute('gltf-model', modelBlobUrl);
+            modelEl.setAttribute('visible', 'true');
+            console.log('Updated 3D model');
+          }
+        }
+        
+        console.log('MindAR reinitialized with new target');
+      }, 100);
+    };
+    
+    img.onerror = function() {
+      console.error('Error loading target image');
+      status.textContent = 'Error loading target image';
+      status.style.borderLeftColor = '#ff4444';
+    };
+    
+    img.src = imageBlobUrl;
+  } else {
+    console.error('Missing required files for AR initialization');
   }
 }
 
@@ -199,18 +244,38 @@ startARBtn.addEventListener('click', function () {
     // Add loading class
     document.querySelector('.upload-container').classList.add('loading');
 
-    // Simulate processing time (remove in production if not needed)
+    // Create blob URLs if not already created
+    if (!mindBlobUrl && mindFile) {
+      mindBlobUrl = URL.createObjectURL(mindFile);
+    }
+    if (!imageBlobUrl && imageFile) {
+      imageBlobUrl = URL.createObjectURL(imageFile);
+    }
+    if (!modelBlobUrl && modelFile) {
+      modelBlobUrl = URL.createObjectURL(modelFile);
+    }
+
+    // Give some time for blob URLs to be ready
     setTimeout(() => {
-      // Switch to AR screen
       showARScreen();
       document.querySelector('.upload-container').classList.remove('loading');
-    }, 1000);
+    }, 500);
   }
 });
 
 // Back button
 backBtn.addEventListener('click', function () {
+  // Stop AR system when going back
+  const scene = document.querySelector('a-scene');
+  if (scene && scene.systems && scene.systems['mindar-image-system']) {
+    scene.systems['mindar-image-system'].stop();
+  }
+  
   showUploadScreen();
+  
+  // Reset button state
+  startARBtn.disabled = false;
+  startARBtn.textContent = 'Start AR Experience';
 });
 
 // Initialize app
@@ -224,11 +289,37 @@ window.addEventListener('DOMContentLoaded', function () {
   // Wait for A-Frame to be ready
   if (typeof AFRAME !== 'undefined') {
     console.log('A-Frame loaded successfully');
+    
+    // Add event listeners for AR events
+    document.addEventListener('DOMContentLoaded', () => {
+      const scene = document.querySelector('a-scene');
+      if (scene) {
+        scene.addEventListener('loaded', () => {
+          console.log('A-Frame scene loaded');
+        });
+      }
+    });
   } else {
     window.addEventListener('load', () => {
       console.log('A-Frame should be loaded now');
     });
   }
+  
+  // Add MindAR event listeners for debugging
+  document.addEventListener('DOMContentLoaded', () => {
+    const scene = document.querySelector('a-scene');
+    if (scene) {
+      scene.addEventListener('arReady', () => {
+        console.log('AR is ready');
+      });
+      
+      scene.addEventListener('arError', (event) => {
+        console.error('AR Error:', event.detail);
+        status.textContent = 'AR initialization failed. Please try again.';
+        status.style.borderLeftColor = '#ff4444';
+      });
+    }
+  });
 });
 
 // Cleanup on page unload
