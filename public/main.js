@@ -1,4 +1,3 @@
-// DOM Elements
 const uploadScreen = document.getElementById('uploadScreen');
 const arScreen = document.getElementById('arScreen');
 const mindInput = document.getElementById('mindInput');
@@ -8,7 +7,6 @@ const status = document.getElementById('status');
 const startARBtn = document.getElementById('startARBtn');
 const backBtn = document.getElementById('backBtn');
 
-// File storage (client-side)
 let modelFile = null;
 let modelBlobUrl = null;
 let mindFile = null;
@@ -16,7 +14,6 @@ let mindBlobUrl = null;
 let imageFile = null;
 let imageBlobUrl = null;
 
-// Screen management
 function showUploadScreen() {
   uploadScreen.classList.add('active');
   arScreen.classList.remove('active');
@@ -26,19 +23,16 @@ function showARScreen() {
   uploadScreen.classList.remove('active');
   arScreen.classList.add('active');
   
-  // Always rebuild scene completely to avoid conflicts
   setTimeout(() => {
     rebuildCompleteScene();
   }, 200);
 }
 
-// Complete scene rebuild - this avoids all MindAR reinitialization issues
 function rebuildCompleteScene() {
   console.log('Rebuilding complete AR scene');
   
   const arScreen = document.getElementById('arScreen');
   
-  // Create new scene HTML with uploaded files
   const sceneHTML = `
     <button id="newBackBtn" class="back-button">← Back to Upload</button>
     <a-scene 
@@ -82,10 +76,8 @@ function rebuildCompleteScene() {
     </a-scene>
   `;
   
-  // Replace entire AR screen content
   arScreen.innerHTML = sceneHTML;
   
-  // Add back button event listener to new button
   document.getElementById('newBackBtn').addEventListener('click', function() {
     showUploadScreen();
     startARBtn.disabled = false;
@@ -95,7 +87,6 @@ function rebuildCompleteScene() {
   console.log('Scene rebuilt with uploaded files');
 }
 
-// File validation and button state management
 function updateButtonState() {
   if (mindFile && imageFile) {
     startARBtn.disabled = false;
@@ -113,7 +104,6 @@ function updateButtonState() {
   }
 }
 
-// Image compression utility
 function compressImage(file, maxWidth = 800, quality = 0.8) {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
@@ -137,8 +127,6 @@ function compressImage(file, maxWidth = 800, quality = 0.8) {
 }
 
 // Event Listeners
-
-// Mind file input
 mindInput.addEventListener('change', function (event) {
   const file = event.target.files[0];
   if (file && file.name.endsWith('.mind')) {
@@ -160,7 +148,6 @@ mindInput.addEventListener('change', function (event) {
   }
 });
 
-// Image file input
 imageInput.addEventListener('change', async function (event) {
   const file = event.target.files[0];
   if (file && file.type.startsWith('image/')) {
@@ -196,7 +183,6 @@ imageInput.addEventListener('change', async function (event) {
   }
 });
 
-// Model file input (optional)
 modelInput.addEventListener('change', function (event) {
   const file = event.target.files[0];
   if (file && (file.name.endsWith('.glb') || file.name.endsWith('.gltf'))) {
@@ -216,7 +202,6 @@ modelInput.addEventListener('change', function (event) {
   }
 });
 
-// Start AR button
 startARBtn.addEventListener('click', function () {
   if (mindFile && imageFile) {
     startARBtn.disabled = true;
@@ -226,7 +211,6 @@ startARBtn.addEventListener('click', function () {
     
     document.querySelector('.upload-container').classList.add('loading');
 
-    // Create blob URLs if not already created
     if (!mindBlobUrl && mindFile) {
       mindBlobUrl = URL.createObjectURL(mindFile);
     }
@@ -244,7 +228,6 @@ startARBtn.addEventListener('click', function () {
   }
 });
 
-// Back button (will be recreated dynamically)
 if (backBtn) {
   backBtn.addEventListener('click', function () {
     showUploadScreen();
@@ -253,7 +236,6 @@ if (backBtn) {
   });
 }
 
-// Initialize app
 window.addEventListener('DOMContentLoaded', function () {
   status.textContent = 'Please upload all required files to start AR experience';
   status.style.borderLeftColor = '#667eea';
@@ -264,7 +246,6 @@ window.addEventListener('DOMContentLoaded', function () {
   }
 });
 
-// Cleanup on page unload
 window.addEventListener('beforeunload', function () {
   if (modelBlobUrl) URL.revokeObjectURL(modelBlobUrl);
   if (mindBlobUrl) URL.revokeObjectURL(mindBlobUrl);

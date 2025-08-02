@@ -1,20 +1,16 @@
-// server.js - Simplified for client-side file processing
+// server.js
 const express = require('express');
 const path = require('path');
 const app = express();
 
-// Use Render's PORT environment variable or fallback to 3000
 const PORT = process.env.PORT || 3000;
 
-// Serve static files
 app.use(express.static('public'));
 
-// Handle favicon.ico requests to prevent 404 errors
 app.get('/favicon.ico', (req, res) => {
   res.status(204).end();
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -23,7 +19,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Handle 404s
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
