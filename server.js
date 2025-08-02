@@ -1,39 +1,35 @@
-// server.js
+// server.js - Simplified for client-side file processing
 const express = require('express');
-const multer = require('multer');
 const path = require('path');
 const app = express();
-const PORT = 3000;
 
-// Set storage location and filename
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public/uploads');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  },
-});
+// Use Render's PORT environment variable or fallback to 3000
+const PORT = process.env.PORT || 3000;
 
-const upload = multer({ storage });
-
+// Serve static files
 app.use(express.static('public'));
 
-// Route to handle file upload
-app.post('/upload', upload.fields([{ name: 'mind' }, { name: 'image' }]), (req, res) => {
-  if (!req.files || !req.files.mind || !req.files.image) {
-    return res.status(400).json({ error: 'Missing files' });
-  }
+// Handle favicon.ico requests to prevent 404 errors
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
 
-  const mindFile = req.files.mind[0];
-  const imageFile = req.files.image[0];
-
-  res.json({
-    mindUrl: `/uploads/${mindFile.filename}`,
-    imageUrl: `/uploads/${imageFile.filename}`,
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    message: 'MindAR Experience Server Running'
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+// Handle 404s
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('Static files served from public directory');
 });

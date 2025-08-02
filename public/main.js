@@ -8,12 +8,13 @@ const status = document.getElementById('status');
 const startARBtn = document.getElementById('startARBtn');
 const backBtn = document.getElementById('backBtn');
 
-// File storage
+// File storage (client-side)
 let modelFile = null;
 let modelBlobUrl = null;
 let mindFile = null;
+let mindBlobUrl = null;
 let imageFile = null;
-let uploadedFiles = null;
+let imageBlobUrl = null;
 
 // Screen management
 function showUploadScreen() {
@@ -31,35 +32,27 @@ function showARScreen() {
   }, 100);
 }
 
-// Initialize AR scene
+// Initialize AR scene with client-side files
 function initializeARScene() {
-  // Apply uploaded files to AR scene
-  if (uploadedFiles) {
-    // Update MindAR target
+  if (mindBlobUrl && imageBlobUrl) {
     const scene = document.querySelector('a-scene');
     const cardImg = document.getElementById('card');
     
     if (scene && cardImg) {
-      scene.setAttribute('mindar-image', `imageTargetSrc: ${uploadedFiles.mindUrl};`);
-      cardImg.src = uploadedFiles.imageUrl;
+      // Update MindAR target with blob URL
+      scene.setAttribute('mindar-image', `imageTargetSrc: ${mindBlobUrl};`);
+      cardImg.src = imageBlobUrl;
       
       // Update 3D model if available
       if (modelBlobUrl) {
         const modelEl = document.getElementById('uploadedModel');
         if (modelEl) {
           modelEl.setAttribute('gltf-model', modelBlobUrl);
+          modelEl.setAttribute('visible', 'true');
         }
       }
-    }
-  }
-  
-  // Ensure the scene is visible and starts
-  const arScene = document.getElementById('arScene');
-  if (arScene) {
-    // Force scene to reinitialize if needed
-    if (arScene.hasLoaded) {
-      // Scene already loaded, just make sure it's running
-      console.log('AR Scene already loaded');
+      
+      console.log('AR Scene initialized with client-side files');
     }
   }
 }
@@ -111,12 +104,21 @@ function compressImage(file, maxWidth = 800, quality = 0.8) {
 mindInput.addEventListener('change', function (event) {
   const file = event.target.files[0];
   if (file && file.name.endsWith('.mind')) {
+    // Clean up previous blob URL
+    if (mindBlobUrl) URL.revokeObjectURL(mindBlobUrl);
+    
     mindFile = file;
+    mindBlobUrl = URL.createObjectURL(file);
+    
     status.textContent = '.mind file loaded successfully';
     status.style.borderLeftColor = '#667eea';
     updateButtonState();
   } else {
     mindFile = null;
+    if (mindBlobUrl) {
+      URL.revokeObjectURL(mindBlobUrl);
+      mindBlobUrl = null;
+    }
     status.textContent = 'Please select a valid .mind file';
     status.style.borderLeftColor = '#ff4444';
     updateButtonState();
@@ -131,17 +133,32 @@ imageInput.addEventListener('change', async function (event) {
     status.style.borderLeftColor = '#667eea';
     
     try {
-      imageFile = file.size > 1024 * 1024 ? await compressImage(file) : file;
+      // Clean up previous blob URL
+      if (imageBlobUrl) URL.revokeObjectURL(imageBlobUrl);
+      
+      // Compress if needed
+      const processedFile = file.size > 1024 * 1024 ? await compressImage(file) : file;
+      imageFile = processedFile;
+      imageBlobUrl = URL.createObjectURL(processedFile);
+      
       status.textContent = 'Target image loaded successfully';
       updateButtonState();
     } catch (error) {
       imageFile = null;
+      if (imageBlobUrl) {
+        URL.revokeObjectURL(imageBlobUrl);
+        imageBlobUrl = null;
+      }
       status.textContent = 'Error processing image. Please try again.';
       status.style.borderLeftColor = '#ff4444';
       updateButtonState();
     }
   } else {
     imageFile = null;
+    if (imageBlobUrl) {
+      URL.revokeObjectURL(imageBlobUrl);
+      imageBlobUrl = null;
+    }
     status.textContent = 'Please select a valid image file (PNG/JPG)';
     status.style.borderLeftColor = '#ff4444';
     updateButtonState();
@@ -152,7 +169,9 @@ imageInput.addEventListener('change', async function (event) {
 modelInput.addEventListener('change', function (event) {
   const file = event.target.files[0];
   if (file && (file.name.endsWith('.glb') || file.name.endsWith('.gltf'))) {
+    // Clean up previous blob URL
     if (modelBlobUrl) URL.revokeObjectURL(modelBlobUrl);
+    
     modelBlobUrl = URL.createObjectURL(file);
     modelFile = file;
     
@@ -160,52 +179,32 @@ modelInput.addEventListener('change', function (event) {
     status.style.borderLeftColor = '#4CAF50';
   } else if (file) {
     modelFile = null;
+    if (modelBlobUrl) {
+      URL.revokeObjectURL(modelBlobUrl);
+      modelBlobUrl = null;
+    }
     status.textContent = 'Please select a valid .glb or .gltf file';
     status.style.borderLeftColor = '#ff4444';
   }
 });
 
-// Start AR button
-startARBtn.addEventListener('click', async function () {
+// Start AR button - No server upload needed!
+startARBtn.addEventListener('click', function () {
   if (mindFile && imageFile) {
     startARBtn.disabled = true;
-    startARBtn.textContent = 'Uploading files...';
-    status.textContent = 'Uploading files to server... Please wait.';
+    startARBtn.textContent = 'Initializing AR...';
+    status.textContent = 'Setting up AR experience...';
     status.style.borderLeftColor = '#667eea';
     
     // Add loading class
     document.querySelector('.upload-container').classList.add('loading');
 
-    const formData = new FormData();
-    formData.append('mind', mindFile);
-    formData.append('image', imageFile);
-
-    try {
-      const response = await fetch('/upload', { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Upload failed');
-
-      const data = await response.json();
-      uploadedFiles = data;
-      
-      // Store file info for display
-      sessionStorage.setItem('mindFileName', mindFile.name);
-      sessionStorage.setItem('imageFileName', imageFile.name);
-      if (modelFile) {
-        sessionStorage.setItem('modelFileName', modelFile.name);
-      }
-      
+    // Simulate processing time (remove in production if not needed)
+    setTimeout(() => {
       // Switch to AR screen
       showARScreen();
-      
-    } catch (err) {
-      status.textContent = 'Upload failed. Please check your connection and try again.';
-      status.style.borderLeftColor = '#ff4444';
-      startARBtn.disabled = false;
-      startARBtn.textContent = 'Start AR Experience';
-      console.error('Upload error:', err);
-    } finally {
       document.querySelector('.upload-container').classList.remove('loading');
-    }
+    }, 1000);
   }
 });
 
@@ -216,18 +215,8 @@ backBtn.addEventListener('click', function () {
 
 // Initialize app
 window.addEventListener('DOMContentLoaded', function () {
-  // Check if we have previous session data
-  const mindFileName = sessionStorage.getItem('mindFileName');
-  const imageFileName = sessionStorage.getItem('imageFileName');
-  
-  if (mindFileName && imageFileName) {
-    // If we have previous uploads, show upload screen but with info
-    status.textContent = `Previous session: ${mindFileName} + ${imageFileName}. Upload new files or go back to AR.`;
-    status.style.borderLeftColor = '#667eea';
-  } else {
-    status.textContent = 'Please upload all required files to start AR experience';
-    status.style.borderLeftColor = '#667eea';
-  }
+  status.textContent = 'Please upload all required files to start AR experience';
+  status.style.borderLeftColor = '#667eea';
   
   // Always start with upload screen
   showUploadScreen();
@@ -236,7 +225,6 @@ window.addEventListener('DOMContentLoaded', function () {
   if (typeof AFRAME !== 'undefined') {
     console.log('A-Frame loaded successfully');
   } else {
-    // Wait for A-Frame to load
     window.addEventListener('load', () => {
       console.log('A-Frame should be loaded now');
     });
@@ -245,5 +233,8 @@ window.addEventListener('DOMContentLoaded', function () {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', function () {
+  // Clean up all blob URLs to prevent memory leaks
   if (modelBlobUrl) URL.revokeObjectURL(modelBlobUrl);
+  if (mindBlobUrl) URL.revokeObjectURL(mindBlobUrl);
+  if (imageBlobUrl) URL.revokeObjectURL(imageBlobUrl);
 });
