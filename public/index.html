@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MindAR Experience</title>
+    
+    <!-- A-Frame and MindAR Scripts - Load immediately -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Upload Screen -->
+    <div id="uploadScreen" class="screen active">
+      <div class="upload-container">
+        <h2>Upload AR Files</h2>
+        <div class="upload-group">
+          <label for="modelInput">Upload 3D Model (.glb/.gltf):</label>
+          <input type="file" id="modelInput" accept=".glb,.gltf" />
+        </div>
+        <div class="upload-group">
+          <label for="mindInput">Upload .mind file:</label>
+          <input type="file" id="mindInput" accept=".mind" />
+        </div>
+        <div class="upload-group">
+          <label for="imageInput">Upload target image (PNG/JPG):</label>
+          <input type="file" id="imageInput" accept=".png,.jpg,.jpeg" />
+        </div>
+        <button id="startARBtn" disabled>Start AR Experience</button>
+        <div id="status">Please upload all required files</div>
+      </div>
+    </div>
+
+    <!-- AR Experience Screen -->
+    <div id="arScreen" class="screen">
+      <button id="backBtn" class="back-button">← Back to Upload</button>
+      
+      <a-scene 
+        id="arScene"
+        shadow="type: pcfsoft; autoUpdate: true"
+        renderer="antialias: true; shadowMap.enabled: true; shadowMap.type: PCFSoftShadowMap; shadowMap.autoUpdate: true; gammaOutput: true"
+        xr-mode-ui="enabled: true"
+        mindar-image="imageTargetSrc: ./targets/SampleCar.mind" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+
+        <!-- Lights -->
+        <a-entity id="mainLight" light="type: directional; castShadow: true; intensity: 1.2; color: #FFFFFF;
+          shadowCameraVisible: false; shadowCameraLeft: -20; shadowCameraRight: 20;
+          shadowCameraTop: 20; shadowCameraBottom: -20; shadowCameraNear: 0.1; shadowCameraFar: 50;
+          shadowMapWidth: 2048; shadowMapHeight: 2048; shadowBias: -0.0001" position="8 12 5"></a-entity>
+
+        <a-entity light="type: ambient; intensity: 0.6; color: #B8D4FF"></a-entity>
+        <a-entity light="type: directional; intensity: 0.3; color: #FFF8DC; castShadow: false" position="-8 7 -8"></a-entity>
+
+        <a-assets>
+          <img id="card" src="./targets/SampleCar.png" />
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0">
+          <a-gltf-model 
+            id="uploadedModel"
+            rotation="90 0 0" 
+            position="0 .2 0" 
+            scale="0.1 0.1 0.1" 
+            src="#avatarModel" 
+            shadow="cast: true; receive: false">
+          </a-gltf-model>
+        </a-entity>
+      </a-scene>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
