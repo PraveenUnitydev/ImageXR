@@ -26,80 +26,73 @@ function showARScreen() {
   uploadScreen.classList.remove('active');
   arScreen.classList.add('active');
   
-  // Wait a moment for the screen to show, then initialize AR
+  // Always rebuild scene completely to avoid conflicts
   setTimeout(() => {
-    initializeARScene();
-  }, 100);
+    rebuildCompleteScene();
+  }, 200);
 }
 
-// Initialize AR scene with client-side files
-function initializeARScene() {
-  if (mindBlobUrl && imageBlobUrl) {
-    console.log('Initializing AR scene with uploaded files');
-    
-    // Get the scene element
-    const scene = document.querySelector('a-scene');
-    if (!scene) {
-      console.error('A-Frame scene not found');
-      return;
-    }
+// Complete scene rebuild - this avoids all MindAR reinitialization issues
+function rebuildCompleteScene() {
+  console.log('Rebuilding complete AR scene');
+  
+  const arScreen = document.getElementById('arScreen');
+  
+  // Create new scene HTML with uploaded files
+  const sceneHTML = `
+    <button id="newBackBtn" class="back-button">← Back to Upload</button>
+    <a-scene 
+      shadow="type: pcfsoft; autoUpdate: true"
+      renderer="antialias: true; shadowMap.enabled: true"
+      mindar-image="imageTargetSrc: ${mindBlobUrl}; maxTrack: 1; autoStart: true; uiLoading: no; uiScanning: no; uiError: no"
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
 
-    // Stop the current AR system if running
-    if (scene.systems && scene.systems['mindar-image-system']) {
-      scene.systems['mindar-image-system'].stop();
-    }
+      <a-entity light="type: directional; castShadow: true; intensity: 1.2; color: #FFFFFF" position="8 12 5"></a-entity>
+      <a-entity light="type: ambient; intensity: 0.6; color: #B8D4FF"></a-entity>
 
-    // Update the card image source first
-    const cardImg = document.getElementById('card');
-    if (cardImg) {
-      cardImg.src = imageBlobUrl;
-      console.log('Updated card image source');
-    }
+      <a-assets>
+        <img id="cardNew" src="${imageBlobUrl}" crossorigin="anonymous" />
+      </a-assets>
 
-    // Wait for image to load, then reinitialize MindAR
-    const img = new Image();
-    img.onload = function() {
-      console.log('Image loaded, reinitializing MindAR');
-      
-      // Remove and recreate the mindar-image attribute to force reinitialization
-      scene.removeAttribute('mindar-image');
-      
-      // Wait a frame then add the new configuration
-      setTimeout(() => {
-        scene.setAttribute('mindar-image', {
-          imageTargetSrc: mindBlobUrl,
-          maxTrack: 1,
-          showStats: false,
-          autoStart: true,
-          uiLoading: 'no',
-          uiScanning: 'no',
-          uiError: 'no'
-        });
-        
-        // Update 3D model if available
-        if (modelBlobUrl) {
-          const modelEl = document.getElementById('uploadedModel');
-          if (modelEl) {
-            modelEl.setAttribute('gltf-model', modelBlobUrl);
-            modelEl.setAttribute('visible', 'true');
-            console.log('Updated 3D model');
-          }
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0">
+        ${modelBlobUrl ? 
+          `<a-gltf-model 
+            rotation="90 0 0" 
+            position="0 0.2 0" 
+            scale="0.1 0.1 0.1" 
+            gltf-model="${modelBlobUrl}">
+          </a-gltf-model>` :
+          `<a-box 
+            position="0 0.1 0" 
+            rotation="0 45 0" 
+            color="#4CC3D9" 
+            animation="property: rotation; to: 0 405 0; loop: true; dur: 10000">
+          </a-box>
+          <a-text 
+            value="Target Found!" 
+            position="0 0.5 0" 
+            align="center" 
+            color="#FFF">
+          </a-text>`
         }
-        
-        console.log('MindAR reinitialized with new target');
-      }, 100);
-    };
-    
-    img.onerror = function() {
-      console.error('Error loading target image');
-      status.textContent = 'Error loading target image';
-      status.style.borderLeftColor = '#ff4444';
-    };
-    
-    img.src = imageBlobUrl;
-  } else {
-    console.error('Missing required files for AR initialization');
-  }
+      </a-entity>
+    </a-scene>
+  `;
+  
+  // Replace entire AR screen content
+  arScreen.innerHTML = sceneHTML;
+  
+  // Add back button event listener to new button
+  document.getElementById('newBackBtn').addEventListener('click', function() {
+    showUploadScreen();
+    startARBtn.disabled = false;
+    startARBtn.textContent = 'Start AR Experience';
+  });
+  
+  console.log('Scene rebuilt with uploaded files');
 }
 
 // File validation and button state management
@@ -149,12 +142,9 @@ function compressImage(file, maxWidth = 800, quality = 0.8) {
 mindInput.addEventListener('change', function (event) {
   const file = event.target.files[0];
   if (file && file.name.endsWith('.mind')) {
-    // Clean up previous blob URL
     if (mindBlobUrl) URL.revokeObjectURL(mindBlobUrl);
-    
     mindFile = file;
     mindBlobUrl = URL.createObjectURL(file);
-    
     status.textContent = '.mind file loaded successfully';
     status.style.borderLeftColor = '#667eea';
     updateButtonState();
@@ -178,14 +168,10 @@ imageInput.addEventListener('change', async function (event) {
     status.style.borderLeftColor = '#667eea';
     
     try {
-      // Clean up previous blob URL
       if (imageBlobUrl) URL.revokeObjectURL(imageBlobUrl);
-      
-      // Compress if needed
       const processedFile = file.size > 1024 * 1024 ? await compressImage(file) : file;
       imageFile = processedFile;
       imageBlobUrl = URL.createObjectURL(processedFile);
-      
       status.textContent = 'Target image loaded successfully';
       updateButtonState();
     } catch (error) {
@@ -214,12 +200,9 @@ imageInput.addEventListener('change', async function (event) {
 modelInput.addEventListener('change', function (event) {
   const file = event.target.files[0];
   if (file && (file.name.endsWith('.glb') || file.name.endsWith('.gltf'))) {
-    // Clean up previous blob URL
     if (modelBlobUrl) URL.revokeObjectURL(modelBlobUrl);
-    
     modelBlobUrl = URL.createObjectURL(file);
     modelFile = file;
-    
     status.textContent = `3D model "${file.name}" loaded successfully`;
     status.style.borderLeftColor = '#4CAF50';
   } else if (file) {
@@ -233,7 +216,7 @@ modelInput.addEventListener('change', function (event) {
   }
 });
 
-// Start AR button - No server upload needed!
+// Start AR button
 startARBtn.addEventListener('click', function () {
   if (mindFile && imageFile) {
     startARBtn.disabled = true;
@@ -241,7 +224,6 @@ startARBtn.addEventListener('click', function () {
     status.textContent = 'Setting up AR experience...';
     status.style.borderLeftColor = '#667eea';
     
-    // Add loading class
     document.querySelector('.upload-container').classList.add('loading');
 
     // Create blob URLs if not already created
@@ -255,76 +237,35 @@ startARBtn.addEventListener('click', function () {
       modelBlobUrl = URL.createObjectURL(modelFile);
     }
 
-    // Give some time for blob URLs to be ready
     setTimeout(() => {
       showARScreen();
       document.querySelector('.upload-container').classList.remove('loading');
-    }, 500);
+    }, 800);
   }
 });
 
-// Back button
-backBtn.addEventListener('click', function () {
-  // Stop AR system when going back
-  const scene = document.querySelector('a-scene');
-  if (scene && scene.systems && scene.systems['mindar-image-system']) {
-    scene.systems['mindar-image-system'].stop();
-  }
-  
-  showUploadScreen();
-  
-  // Reset button state
-  startARBtn.disabled = false;
-  startARBtn.textContent = 'Start AR Experience';
-});
+// Back button (will be recreated dynamically)
+if (backBtn) {
+  backBtn.addEventListener('click', function () {
+    showUploadScreen();
+    startARBtn.disabled = false;
+    startARBtn.textContent = 'Start AR Experience';
+  });
+}
 
 // Initialize app
 window.addEventListener('DOMContentLoaded', function () {
   status.textContent = 'Please upload all required files to start AR experience';
   status.style.borderLeftColor = '#667eea';
-  
-  // Always start with upload screen
   showUploadScreen();
   
-  // Wait for A-Frame to be ready
   if (typeof AFRAME !== 'undefined') {
     console.log('A-Frame loaded successfully');
-    
-    // Add event listeners for AR events
-    document.addEventListener('DOMContentLoaded', () => {
-      const scene = document.querySelector('a-scene');
-      if (scene) {
-        scene.addEventListener('loaded', () => {
-          console.log('A-Frame scene loaded');
-        });
-      }
-    });
-  } else {
-    window.addEventListener('load', () => {
-      console.log('A-Frame should be loaded now');
-    });
   }
-  
-  // Add MindAR event listeners for debugging
-  document.addEventListener('DOMContentLoaded', () => {
-    const scene = document.querySelector('a-scene');
-    if (scene) {
-      scene.addEventListener('arReady', () => {
-        console.log('AR is ready');
-      });
-      
-      scene.addEventListener('arError', (event) => {
-        console.error('AR Error:', event.detail);
-        status.textContent = 'AR initialization failed. Please try again.';
-        status.style.borderLeftColor = '#ff4444';
-      });
-    }
-  });
 });
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', function () {
-  // Clean up all blob URLs to prevent memory leaks
   if (modelBlobUrl) URL.revokeObjectURL(modelBlobUrl);
   if (mindBlobUrl) URL.revokeObjectURL(mindBlobUrl);
   if (imageBlobUrl) URL.revokeObjectURL(imageBlobUrl);
