@@ -63,8 +63,8 @@ function rebuildCompleteScene() {
         ${modelBlobUrl ? 
           `<a-gltf-model 
             rotation="90 0 0" 
-            position="0 0.2 0" 
-            scale="0.1 0.1 0.1" 
+            position="0 0.1 0" 
+            scale="0.4 0.4 0.4" 
             gltf-model="${modelBlobUrl}">
           </a-gltf-model>` :
           `<a-box 
