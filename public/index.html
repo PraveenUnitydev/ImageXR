@@ -2,33 +2,65 @@
 <html lang="en">
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MindAR Experience</title>
+    <title>ImageXR Experience</title>
     
-    <!-- A-Frame and MindAR Scripts - Load immediately -->
+    <!-- A-Frame and MindAR Scripts -->
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
+    <!-- Vanta.js Animation Scripts -->
+    <script src="vanta/three.r134.min.js"></script>
+    <script src="vanta/vanta.birds.min.js"></script>
+    
+    <!-- Your CSS file -->
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <!-- Upload Screen -->
     <div id="uploadScreen" class="screen active">
+      <!-- Vanta.js background container -->
+      <div id="vanta-background" class="vanta-bg"></div>
+      
       <div class="upload-container">
-        <h2>Upload AR Files</h2>
+        <h2> Upload Required Files</h2>
         <div class="upload-group">
-          <label for="modelInput">Upload 3D Model (.glb/.gltf):</label>
-          <input type="file" id="modelInput" accept=".glb,.gltf" />
+          <label for="modelInput">🎯 3D Model (.glb/.gltf)</label>
+          <div class="file-input-wrapper">
+            <input type="file" id="modelInput" accept=".glb,.gltf" />
+            <div class="file-input-button" data-input="modelInput">
+              <span class="icon">📦</span>
+              <span class="text">Choose 3D Model File</span>
+            </div>
+          </div>
         </div>
         <div class="upload-group">
-          <label for="mindInput">Upload .mind file:</label>
-          <input type="file" id="mindInput" accept=".mind" />
+         <label for="mindInput">
+  🧠 Mind Tracking File
+  <a href="https://hiukim.github.io/mind-ar-js-doc/tools/compile/" target="_blank" style="margin-left: 6px; color: #fff; text-decoration: none;" title="How to generate .mind file">
+    <span style="background: rgba(255,255,255,0.2); border-radius: 50%; padding: 2px 6px; font-weight: bold;">?</span>
+  </a>
+</label>
+
+          <div class="file-input-wrapper">
+            <input type="file" id="mindInput" accept=".mind" />
+            <div class="file-input-button" data-input="mindInput">
+              <span class="icon">🔮</span>
+              <span class="text">Choose .mind File</span>
+            </div>
+          </div>
         </div>
         <div class="upload-group">
-          <label for="imageInput">Upload target image (PNG/JPG):</label>
-          <input type="file" id="imageInput" accept=".png,.jpg,.jpeg" />
+          <label for="imageInput">🖼️ Target Image (PNG/JPG)</label>
+          <div class="file-input-wrapper">
+            <input type="file" id="imageInput" accept=".png,.jpg,.jpeg" />
+            <div class="file-input-button" data-input="imageInput">
+              <span class="icon">🎨</span>
+              <span class="text">Choose Target Image</span>
+            </div>
+          </div>
         </div>
-        <button id="startARBtn" disabled>Start AR Experience</button>
-        <div id="status">Please upload all required files</div>
+        <button id="startARBtn" disabled>🚀 Launch AR Experience</button>
+        <div id="status">Please upload all required files to begin your AR journey</div>
       </div>
     </div>
 
@@ -56,7 +88,6 @@
         <a-entity light="type: directional; intensity: 0.3; color: #FFF8DC; castShadow: false" position="-8 7 -8"></a-entity>
 
         <a-assets>
-          <!-- This will be updated dynamically -->
           <img id="card" src="" crossorigin="anonymous" />
         </a-assets>
 
@@ -72,7 +103,6 @@
             shadow="cast: true; receive: false">
           </a-gltf-model>
           
-          <!-- Fallback plane if no 3D model -->
           <a-plane 
             id="fallbackPlane"
             position="0 0 0" 
@@ -84,7 +114,6 @@
             visible="false">
             <a-text 
               value="AR Target Found!" 
-
               color="#FFF" 
               position="0 0 0.01">
             </a-text>
@@ -94,5 +123,103 @@
     </div>
 
     <script src="main.js"></script>
+    
+    <script>
+      document.querySelectorAll('.file-input-button').forEach(button => {
+        const inputId = button.getAttribute('data-input');
+        const input = document.getElementById(inputId);
+        const textSpan = button.querySelector('.text');
+        
+        button.setAttribute('data-original-text', textSpan.textContent);
+        
+        button.addEventListener('click', () => input.click());
+        
+        input.addEventListener('change', function() {
+          if (this.files.length > 0) {
+            button.classList.add('has-file');
+            textSpan.textContent = `✓ ${this.files[0].name}`;
+          } else {
+            button.classList.remove('has-file');
+            textSpan.textContent = button.getAttribute('data-original-text');
+          }
+        });
+      });
+    </script>
+    
+    <script>
+      let vantaEffect = null;
+      
+      function initVantaAnimation() {
+        if (typeof THREE === 'undefined' || typeof VANTA === 'undefined' || !VANTA.BIRDS) return;
+        
+        const targetElement = document.getElementById('vanta-background');
+        if (!targetElement) return;
+        
+        if (vantaEffect) vantaEffect.destroy();
+        
+        try {
+          vantaEffect = VANTA.BIRDS({
+            el: "#vanta-background",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            wingSpan: 32.00,
+            separation: 51.00,
+            backgroundColor: 0x1a1a2e,
+            color1: 0xff6b6b,
+            color2: 0x4ecdc4,
+            birdSize: 1.5,
+            speedLimit: 3.00,
+            quantity: 3.00
+          });
+        } catch (error) {
+          console.error('Error initializing Vanta:', error);
+        }
+      }
+      
+      function destroyVantaAnimation() {
+        if (vantaEffect) {
+          try {
+            vantaEffect.destroy();
+            vantaEffect = null;
+          } catch (error) {
+            console.error('Error destroying Vanta:', error);
+          }
+        }
+      }
+      
+      function waitForScripts() {
+        let attempts = 0;
+        const maxAttempts = 30;
+        
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (typeof THREE !== 'undefined' && typeof VANTA !== 'undefined' && VANTA && VANTA.BIRDS) {
+            clearInterval(checkInterval);
+            initVantaAnimation();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+          }
+        }, 100);
+      }
+      
+      document.addEventListener('DOMContentLoaded', waitForScripts);
+      
+      document.addEventListener('screenChange', function(e) {
+        if (e.detail.screen === 'ar') {
+          destroyVantaAnimation();
+        } else if (e.detail.screen === 'upload') {
+          setTimeout(initVantaAnimation, 100);
+        }
+      });
+      
+      window.addEventListener('load', function() {
+        if (!vantaEffect) setTimeout(waitForScripts, 500);
+      });
+    </script>
   </body>
 </html>

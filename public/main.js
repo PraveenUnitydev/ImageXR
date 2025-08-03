@@ -17,11 +17,19 @@ let imageBlobUrl = null;
 function showUploadScreen() {
   uploadScreen.classList.add('active');
   arScreen.classList.remove('active');
+  
+  document.dispatchEvent(new CustomEvent('screenChange', {
+    detail: { screen: 'upload' }
+  }));
 }
 
 function showARScreen() {
   uploadScreen.classList.remove('active');
   arScreen.classList.add('active');
+  
+  document.dispatchEvent(new CustomEvent('screenChange', {
+    detail: { screen: 'ar' }
+  }));
   
   setTimeout(() => {
     rebuildCompleteScene();
