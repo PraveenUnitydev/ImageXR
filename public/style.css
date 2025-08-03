@@ -219,6 +219,11 @@ body {
   white-space: nowrap;
 }
 
+.upload-container button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.03);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
 
 #startARBtn {
   background: linear-gradient(135deg, 
